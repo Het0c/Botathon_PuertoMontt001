@@ -1,0 +1,224 @@
+﻿<process name="automatizacion_procesos" version="1.0" bpversion="7.5.1.18099" cpeversion="10.0.136.0" narrative="" byrefcollection="true" processrunningmessage="" disableversioning="false" preferredid="e1be6be9-9931-43b7-9bf6-89f5d9e58b53">
+  <view>
+    <camerax>232</camerax>
+    <cameray>54</cameray>
+    <zoom version="2">1.25</zoom>
+  </view>
+  <preconditions />
+  <endpoint narrative="" />
+  <stage stageid="19762403-7d0e-4af0-b713-e32b6a7c7402" name="Start" type="Start">
+    <display x="-60" y="-90" />
+    <onsuccess>82940a6b-eaf8-4953-9363-2979760434d4</onsuccess>
+  </stage>
+  <stage stageid="571b165d-8df3-4d87-9ab2-be506258cca8" name="End" type="End">
+    <display x="570" y="195" />
+  </stage>
+  <stage stageid="f3df5400-d0fe-4c2e-9eda-811587d3f683" name="Stage1" type="ProcessInfo">
+    <display x="-345" y="-180" w="150" h="90" />
+  </stage>
+  <stage stageid="82940a6b-eaf8-4953-9363-2979760434d4" name="Crear Instancia" type="Action">
+    <loginhibit onsuccess="true" />
+    <display x="15" y="-90" />
+    <inputs>
+      <input type="flag" name="Enable Events" friendlyname="Enable Events" narrative="Flag to indicate that events should be enabled / disabled on the attached instance - defaulted to True" expr="" />
+    </inputs>
+    <outputs>
+      <output type="number" name="handle" friendlyname="handle" narrative="An integer which can be used to identify the created instance in subsequent actions" stage="handle" />
+    </outputs>
+    <onsuccess>0989a8a7-590f-4ec6-8903-3968e8b008a4</onsuccess>
+    <resource object="MS Excel VBO" action="Create Instance" />
+  </stage>
+  <stage stageid="0989a8a7-590f-4ec6-8903-3968e8b008a4" name="abrir libro" type="Action">
+    <loginhibit onsuccess="true" />
+    <display x="105" y="-90" />
+    <inputs>
+      <input type="number" name="handle" friendlyname="handle" narrative="The integer handle identifying the instance on which the required workbook should be opened. The default of zero indicates the currently active instance." expr="[handle]" />
+      <input type="text" name="File name" friendlyname="File name" narrative="The path and name of the file which should be opened." expr="&quot;C:\Users\botrem01\Downloads\Nac - Base contratos x mes.xlsx&quot;" />
+      <input type="number" name="Timeout" friendlyname="Timeout" narrative="The time available for the action to complete." expr="" />
+      <input type="text" name="Password" friendlyname="Password" narrative="Optional. The password required to open the workbook. This only applies to workbooks that were saved with a password." expr="" />
+      <input type="flag" name="Update Links" friendlyname="Update Links" narrative="Optional. Flag that controls whether external references (links) in the file, such as the reference to other Workbooks, are updated. Default value is True." expr="" />
+    </inputs>
+    <outputs>
+      <output type="text" name="Workbook Name" friendlyname="Workbook Name" narrative="The name used by Excel to identify the workbook - usually this is the file name (without the path)." stage="Workbook Name" />
+    </outputs>
+    <onsuccess>707a3a01-9cf5-4d9d-ab96-95ec1de2b351</onsuccess>
+    <resource object="MS Excel VBO" action="Open Workbook" />
+  </stage>
+  <stage stageid="140689a9-41a2-499b-8dba-f0108096ec26" name="handle" type="Data">
+    <display x="60" y="-180" w="90" h="60" />
+    <datatype>number</datatype>
+    <initialvalue />
+    <private />
+    <alwaysinit />
+  </stage>
+  <stage stageid="edac2b8b-4f2f-4780-baf5-1fe0a91c3bc4" name="Workbook Name" type="Data">
+    <display x="180" y="-180" w="90" h="60" />
+    <datatype>text</datatype>
+    <initialvalue />
+    <private />
+    <alwaysinit />
+  </stage>
+  <stage stageid="707a3a01-9cf5-4d9d-ab96-95ec1de2b351" name="Leer base contrato" type="Action">
+    <loginhibit onsuccess="true" />
+    <display x="195" y="-90" />
+    <inputs>
+      <input type="number" name="handle" friendlyname="handle" narrative="The integer handle identifying the instance on which the worksheet which should be retrieved resides. The default of zero indicates the currently active instance." expr="[handle]" />
+      <input type="text" name="Workbook Name" friendlyname="Workbook Name" narrative="The name of the workbook which contains the sheet required. The default empty text indicates the currently active workbook on the specified instance." expr="[Workbook Name]" />
+      <input type="text" name="Worksheet Name" friendlyname="Worksheet Name" narrative="The name of the worksheet within the specified workbook which should be written to a collection. The default empty text indicates the currently active worksheet within the specified workbook." expr="" />
+      <input type="text" name="Fetch Data with Method" friendlyname="Fetch Data with Method" narrative="Optional: The method used to fetch data from cells in the worksheet. Options include Text, Value, and Value2. The default indicates Value will be used." expr="" />
+      <input type="flag" name="Use Clipboard" friendlyname="Use Clipboard" narrative="Optional: Flag that indicates the Windows clipboard should be used. Default value is False." expr="" />
+    </inputs>
+    <outputs>
+      <output type="collection" name="Data" friendlyname="Data" narrative="The collection containing the data from the specified worksheet - the column IDs will be gleaned from the first row on the sheet being retrieved." stage="Data" />
+    </outputs>
+    <onsuccess>1ae4f265-a3a6-4c6e-9d92-88938d14cf53</onsuccess>
+    <resource object="MS Excel VBO" action="Get Worksheet As Collection" />
+  </stage>
+  <stage stageid="5d355d34-3dcb-4454-bfcb-1743c548c2b3" name="Data" type="Collection">
+    <display x="270" y="-180" w="90" h="60" />
+    <datatype>collection</datatype>
+    <private />
+    <alwaysinit />
+  </stage>
+  <stage stageid="bd71051d-e6e2-4422-9c5e-7561c0cc9523" name="Fin Bucle Contratos" type="LoopEnd">
+    <loginhibit onsuccess="true" />
+    <display x="285" y="75" />
+    <onsuccess>e2d9d3d3-15b8-407f-9633-af2ac62b324a</onsuccess>
+    <groupid>d1e1fae8-476c-432f-944d-4a260f819ee3</groupid>
+  </stage>
+  <stage stageid="1ae4f265-a3a6-4c6e-9d92-88938d14cf53" name="Recorrer contratos" type="LoopStart">
+    <loginhibit onsuccess="true" />
+    <display x="285" y="-90" />
+    <onsuccess>f3f15cc2-18a7-41ea-8311-acfc696aff71</onsuccess>
+    <groupid>d1e1fae8-476c-432f-944d-4a260f819ee3</groupid>
+    <looptype>ForEach</looptype>
+    <loopdata>Data</loopdata>
+  </stage>
+  <stage stageid="f3f15cc2-18a7-41ea-8311-acfc696aff71" name="¿Es D - SIC?" type="Decision">
+    <display x="285" y="-15" />
+    <decision expression="Trim([Data.Column17]) = &quot;D - SIC&quot;" />
+    <ontrue>f09cd091-5bb1-43a8-b166-fb03de3b0ad7</ontrue>
+    <onfalse>bd71051d-e6e2-4422-9c5e-7561c0cc9523</onfalse>
+  </stage>
+  <stage stageid="46b54711-df46-4412-9566-3cec7e0c0663" name="Contratos filtrados" type="Collection">
+    <display x="375" y="-180" w="90" h="60" />
+    <datatype>collection</datatype>
+    <private />
+    <alwaysinit />
+    <collectioninfo>
+      <field name="PersonaId" type="number" />
+      <field name="Instituto" type="text" />
+      <field name="Cargo" type="text" />
+      <field name="Horas Semanales" type="number" />
+    </collectioninfo>
+  </stage>
+  <stage stageid="f09cd091-5bb1-43a8-b166-fb03de3b0ad7" name="Añadir fila filtrada" type="Action">
+    <loginhibit onsuccess="true" />
+    <display x="180" y="-15" />
+    <inputs>
+      <input type="text" name="Collection Name" friendlyname="Collection Name" narrative="The name of the collection to act upon" expr="&quot;Contratos filtrados&quot;" />
+    </inputs>
+    <onsuccess>49eb8b38-c9db-4422-bfb6-0ed9f7cd08de</onsuccess>
+    <resource object="Blueprism.AutomateProcessCore.clsCollectionActions" action="Add Row" />
+  </stage>
+  <stage stageid="49eb8b38-c9db-4422-bfb6-0ed9f7cd08de" name="Multi1" type="MultipleCalculation">
+    <loginhibit onsuccess="true" />
+    <display x="180" y="75" w="90" h="60" />
+    <onsuccess>bd71051d-e6e2-4422-9c5e-7561c0cc9523</onsuccess>
+    <steps>
+      <calculation expression="[Data.Column3]" stage="Contratos filtrados.PersonaId" />
+      <calculation expression="[Data.Column2]" stage="Contratos filtrados.Instituto" />
+      <calculation expression="[Data.Column14]" stage="Contratos filtrados.Cargo" />
+      <calculation expression="[Data.Column13]" stage="Contratos filtrados.Horas Semanales" />
+    </steps>
+  </stage>
+  <stage stageid="e2d9d3d3-15b8-407f-9633-af2ac62b324a" name="Abrir Planificacion" type="Action">
+    <loginhibit onsuccess="true" />
+    <display x="285" y="135" />
+    <inputs>
+      <input type="number" name="handle" friendlyname="handle" narrative="The integer handle identifying the instance on which the required workbook should be opened. The default of zero indicates the currently active instance." expr="[handle]" />
+      <input type="text" name="File name" friendlyname="File name" narrative="The path and name of the file which should be opened." expr="&quot;C:\Users\botrem01\Downloads\Nac - Planificación Asistencial x mes.xlsx&quot;" />
+      <input type="number" name="Timeout" friendlyname="Timeout" narrative="The time available for the action to complete." expr="" />
+      <input type="text" name="Password" friendlyname="Password" narrative="Optional. The password required to open the workbook. This only applies to workbooks that were saved with a password." expr="" />
+      <input type="flag" name="Update Links" friendlyname="Update Links" narrative="Optional. Flag that controls whether external references (links) in the file, such as the reference to other Workbooks, are updated. Default value is True." expr="" />
+    </inputs>
+    <outputs>
+      <output type="text" name="Workbook Name" friendlyname="Workbook Name" narrative="The name used by Excel to identify the workbook - usually this is the file name (without the path)." stage="Workbook Name1" />
+    </outputs>
+    <onsuccess>cda1c879-8ba9-430e-9ca2-4b64b59a54e6</onsuccess>
+    <resource object="MS Excel VBO" action="Open Workbook" />
+  </stage>
+  <stage stageid="b4bfcfb9-6aa6-4a16-8185-1b32dc88e644" name="Workbook Name1" type="Data">
+    <display x="375" y="-90" />
+    <datatype>text</datatype>
+    <initialvalue />
+    <private />
+    <alwaysinit />
+  </stage>
+  <stage stageid="cda1c879-8ba9-430e-9ca2-4b64b59a54e6" name="Leer Planificacion Asistencial" type="Action">
+    <loginhibit onsuccess="true" />
+    <display x="375" y="135" />
+    <inputs>
+      <input type="number" name="handle" friendlyname="handle" narrative="The integer handle identifying the instance on which the worksheet which should be retrieved resides. The default of zero indicates the currently active instance." expr="[handle]" />
+      <input type="text" name="Workbook Name" friendlyname="Workbook Name" narrative="The name of the workbook which contains the sheet required. The default empty text indicates the currently active workbook on the specified instance." expr="[Workbook Name1]" />
+      <input type="text" name="Worksheet Name" friendlyname="Worksheet Name" narrative="The name of the worksheet within the specified workbook which should be written to a collection. The default empty text indicates the currently active worksheet within the specified workbook." expr="" />
+      <input type="text" name="Fetch Data with Method" friendlyname="Fetch Data with Method" narrative="Optional: The method used to fetch data from cells in the worksheet. Options include Text, Value, and Value2. The default indicates Value will be used." expr="" />
+      <input type="flag" name="Use Clipboard" friendlyname="Use Clipboard" narrative="Optional: Flag that indicates the Windows clipboard should be used. Default value is False." expr="" />
+    </inputs>
+    <outputs>
+      <output type="collection" name="Data" friendlyname="Data" narrative="The collection containing the data from the specified worksheet - the column IDs will be gleaned from the first row on the sheet being retrieved." stage="Data1" />
+    </outputs>
+    <onsuccess>d547e6b7-57c8-47c5-b29a-5479048f26f7</onsuccess>
+    <resource object="MS Excel VBO" action="Get Worksheet As Collection" />
+  </stage>
+  <stage stageid="894ed25a-3999-4afd-90f9-deb34e18ec21" name="Data1" type="Collection">
+    <display x="375" y="-15" />
+    <datatype>collection</datatype>
+    <private />
+    <alwaysinit />
+  </stage>
+  <stage stageid="58b289c7-a8da-460a-927f-8ccb0a585044" name="Generar Estructura" type="LoopEnd">
+    <loginhibit onsuccess="true" />
+    <display x="465" y="255" />
+    <onsuccess>56fec4a4-0dda-430e-9fcc-a17930133bac</onsuccess>
+    <groupid>135d4fc5-99ae-47ff-a85c-99608bf75673</groupid>
+  </stage>
+  <stage stageid="d547e6b7-57c8-47c5-b29a-5479048f26f7" name="Generar Estructura" type="LoopStart">
+    <loginhibit onsuccess="true" />
+    <display x="465" y="135" />
+    <onsuccess>37362053-abec-4525-8dfc-711de647f91c</onsuccess>
+    <groupid>135d4fc5-99ae-47ff-a85c-99608bf75673</groupid>
+    <looptype>ForEach</looptype>
+    <loopdata>Contratos filtrados</loopdata>
+  </stage>
+  <stage stageid="37362053-abec-4525-8dfc-711de647f91c" name="Juntar Texto" type="Calculation">
+    <loginhibit onsuccess="true" />
+    <display x="465" y="195" />
+    <onsuccess>58b289c7-a8da-460a-927f-8ccb0a585044</onsuccess>
+    <calculation expression="[JsonFinal] &amp; &quot;{ &quot;&quot;personaId&quot;&quot;: &quot; &amp; [Contratos filtrados.PersonaId] &amp; &quot;, &quot;&quot;instituto&quot;&quot;: &quot;&quot;&quot; &amp; [Contratos filtrados.Instituto] &amp; &quot;&quot;&quot;, &quot;&quot;cargo&quot;&quot;: &quot;&quot;&quot; &amp; [Contratos filtrados.Cargo] &amp; &quot;&quot;&quot;, &quot;&quot;contrato&quot;&quot;: { &quot;&quot;horasSemanales&quot;&quot;: &quot; &amp; [Contratos filtrados.Horas Semanales] &amp; &quot; }, &quot;&quot;meses&quot;&quot;: { &quot;&quot;01&quot;&quot;: { &quot;&quot;licencias&quot;&quot;: 0, &quot;&quot;vacaciones&quot;&quot;: 0 }, &quot;&quot;02&quot;&quot;: { &quot;&quot;licencias&quot;&quot;: 0, &quot;&quot;vacaciones&quot;&quot;: 3 } } },&quot;" stage="JsonFinal" />
+  </stage>
+  <stage stageid="5c6812c3-cd40-4605-abee-560b34708cb2" name="JsonFinal" type="Data">
+    <loginhibit onsuccess="true" />
+    <display x="465" y="-15" />
+    <datatype>text</datatype>
+    <initialvalue />
+    <private />
+    <alwaysinit />
+  </stage>
+  <stage stageid="56fec4a4-0dda-430e-9fcc-a17930133bac" name="Exportar Archivo JSON" type="Action">
+    <loginhibit onsuccess="true" />
+    <display x="570" y="255" />
+    <inputs>
+      <input type="text" name="File Name" friendlyname="File Name" narrative="The full path to the file to write the text to" expr="&quot;/home/dami/Escritorio/datos_buk.json&quot;" />
+      <input type="text" name="Text" friendlyname="Text" narrative="The text to write to the file" expr="[JsonFinal]" />
+      <input type="text" name="File Encoding" friendlyname="File Encoding" narrative="Optional. Defaults to utf-8" expr="" />
+      <input type="flag" name="Use BOM" friendlyname="Use BOM" narrative="Optional. Flag indicating whether to use Byte Order Mark with a Unicode encoding. Default is False." expr="" />
+    </inputs>
+    <outputs>
+      <output type="flag" name="Success" friendlyname="Success" narrative="True if successful" stage="" />
+      <output type="text" name="Message" friendlyname="Message" narrative="An error message if unsuccessful" stage="" />
+    </outputs>
+    <onsuccess>571b165d-8df3-4d87-9ab2-be506258cca8</onsuccess>
+    <resource object="Utility - File Management" action="Write Text File" />
+  </stage>
+</process>
