@@ -1,0 +1,23 @@
+{
+  "records": [
+    {
+      "sourceRecordId": "buk-2026-137732-Ari-001",
+      "personaId": "137732",
+      "instituto": "Ari",
+      "nombreInstituto": "Instituto Arica",
+      "cargo": "MEDICO FISIATRA",
+      "area": "MEDICO TERAPEUTICO",
+      "regSic": "D - SIC",
+      "anioPlanificacion": 2026,
+      "contrato": {
+        "fechaInicio": "2025-07-01",
+        "fechaTermino": null,
+        "horasSemanales": 40
+      },
+      "meses": {
+        "01": {"licencias": 0, "vacaciones": 0},
+        "02": {"licencias": 0, "vacaciones": 3}
+      }
+    }
+  ]
+}

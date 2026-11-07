@@ -1,0 +1,13 @@
+{
+  "deltas": [
+    {
+      "sourceRecordId": "delta-2026-137732-2026-05-15",
+      "personaId": "137732",
+      "tipoCambio": "CAMBIO_HORAS",
+      "fechaEfectiva": "2026-05-15",
+      "valorAnterior": {"horasSemanales": 40},
+      "valorNuevo": {"horasSemanales": 30},
+      "justificacion": "Cambio de jornada detectado por Blue Prism en reporte BUK"
+    }
+  ]
+}

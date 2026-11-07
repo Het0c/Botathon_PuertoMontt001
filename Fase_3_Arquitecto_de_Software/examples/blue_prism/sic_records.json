@@ -1,0 +1,14 @@
+{
+  "records": [
+    {
+      "sourceRecordId": "sic-2026-01-137732-Ari",
+      "personaId": "137732",
+      "instituto": "Ari",
+      "year": 2026,
+      "month": 1,
+      "atencionesDirectas": 126,
+      "atencionesIndirectas": 12,
+      "reporteValidado": true
+    }
+  ]
+}
