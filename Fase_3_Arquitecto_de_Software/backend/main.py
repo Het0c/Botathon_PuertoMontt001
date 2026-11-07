@@ -1,6 +1,9 @@
+from pathlib import Path
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.exc import IntegrityError
 
 from .config import get_settings
@@ -35,6 +38,7 @@ def create_app(*, initialize_local_db: bool = False) -> FastAPI:
     )
     app.include_router(rpa_router)
     app.include_router(api_router)
+    app.mount("/app", StaticFiles(directory=Path(__file__).parents[2] / "frontend", html=True), name="frontend")
 
     @app.get("/health", tags=["Sistema"])
     def health() -> dict:

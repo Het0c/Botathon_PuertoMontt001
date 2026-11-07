@@ -1,0 +1,691 @@
+<!doctype html>
+<html lang="es-CL">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cada hora cuenta · Planificación asistencial</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="styles.css">
+  <script src="vendor/chart.umd.min.js" defer></script>
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#contenido" id="saltar">Saltar al contenido</a>
+
+  <header class="topbar">
+    <div class="brand">
+      <p class="brand-title">Cada hora cuenta</p>
+      <p class="brand-sub">Planificación asistencial Teletón · Año <span id="anio-actual"></span></p>
+    </div>
+    <form id="form-sesion" class="session" novalidate>
+      <details class="config" id="config">
+        <summary>Configuración <span id="config-estado" class="config-estado"></span></summary>
+        <div class="config-panel">
+          <div class="field">
+            <label for="api-key">API key</label>
+            <input id="api-key" name="api-key" type="password" autocomplete="off" spellcheck="false" aria-describedby="api-key-ayuda">
+            <span id="api-key-ayuda" class="field-hint">Valor de USER_API_KEY del archivo .env. Se guarda solo en este navegador. Presiona Aplicar para usarla.</span>
+          </div>
+        </div>
+      </details>
+      <div class="field">
+        <label for="usuario">Usuario</label>
+        <input id="usuario" name="usuario" type="text" autocomplete="username" spellcheck="false">
+      </div>
+      <div class="field">
+        <label for="rol">Rol</label>
+        <select id="rol" name="rol">
+          <option value="management">Gerencia (management)</option>
+          <option value="rrhh">RRHH (rrhh)</option>
+          <option value="dmn">DMN (dmn)</option>
+          <option value="professional">Profesional (professional)</option>
+        </select>
+      </div>
+      <button type="submit" class="btn">Aplicar</button>
+    </form>
+    <p id="cargando" class="loading" hidden>Cargando datos…</p>
+  </header>
+
+  <div class="layout">
+    <nav class="sidenav" aria-label="Secciones">
+      <button type="button" class="menu-toggle" id="menu-toggle" aria-expanded="false" aria-controls="menu-lista">
+        <span aria-hidden="true">☰</span> Menú<span class="menu-actual" id="menu-actual"></span>
+      </button>
+      <ul id="menu-lista">
+        <li><a href="#consolidado" data-vista="consolidado">Consolidado nacional</a></li>
+        <li><a href="#profesionales" data-vista="profesionales">Profesionales</a></li>
+        <li><a href="#parametros" data-vista="parametros">Parámetros</a></li>
+        <li><a href="#asignaciones" data-vista="asignaciones">Asignaciones por aprobar</a></li>
+        <li><a href="#bitacora" data-vista="bitacora">Bitácora</a></li>
+      </ul>
+      <div class="role-box">
+        <p class="role-box-title">Sesión</p>
+        <p id="sesion-resumen">Sin sesión</p>
+        <p id="sesion-permisos" class="muted"></p>
+      </div>
+    </nav>
+
+    <main id="contenido" tabindex="-1">
+      <div id="mensajes" class="messages" aria-live="polite"></div>
+
+      <!-- ============================================================ 1. CONSOLIDADO -->
+      <section id="vista-consolidado" class="view" aria-labelledby="t-consolidado" hidden>
+        <h1 id="t-consolidado" tabindex="-1">Consolidado nacional</h1>
+
+        <form id="filtros" class="filters" aria-label="Filtros del consolidado">
+          <div class="field">
+            <label for="f-instituto">Instituto</label>
+            <select id="f-instituto" name="instituto"><option value="">Todos</option></select>
+          </div>
+          <div class="field">
+            <label for="f-area">Área</label>
+            <select id="f-area" name="area"><option value="">Todas</option></select>
+          </div>
+          <div class="field">
+            <label for="f-cargo">Cargo</label>
+            <select id="f-cargo" name="cargo"><option value="">Todos</option></select>
+          </div>
+          <div class="field">
+            <label for="f-mes">Mes</label>
+            <select id="f-mes" name="mes"><option value="">Todos</option></select>
+          </div>
+          <button type="reset" class="btn btn-secondary" id="f-limpiar">Limpiar</button>
+        </form>
+        <p id="filtro-resumen" class="muted"></p>
+
+        <h2 class="visually-hidden">Indicadores principales</h2>
+        <div class="cards">
+          <article class="card">
+            <h3 class="card-label">Atenciones planificadas</h3>
+            <p class="card-value" id="k-planificadas">—</p>
+            <p class="card-sub" id="k-planificadas-sub"></p>
+          </article>
+          <article class="card">
+            <h3 class="card-label" id="k-meta-label">Meta de Gestión Asistencial</h3>
+            <p class="card-value" id="k-meta">—</p>
+            <p class="card-sub" id="k-meta-sub"></p>
+          </article>
+          <article class="card">
+            <h3 class="card-label">% FOJA</h3>
+            <p class="card-value" id="k-foja">—</p>
+            <p class="card-sub">Horas directas sobre horas contratadas</p>
+          </article>
+          <article class="card">
+            <h3 class="card-label">Profesionales activos</h3>
+            <p class="card-value" id="k-profesionales">—</p>
+            <p class="card-sub" id="k-profesionales-sub"></p>
+          </article>
+        </div>
+
+        <section class="panel" aria-labelledby="t-resumen-inst">
+          <h2 id="t-resumen-inst">Resumen anual por instituto</h2>
+          <p class="muted" id="resumen-inst-nota">Haz clic en un instituto para filtrar todo el consolidado; vuelve a hacer clic para quitar el filtro.</p>
+          <div class="table-wrap">
+            <table class="data">
+              <caption class="visually-hidden" id="resumen-inst-caption">Resumen por instituto</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Instituto <span class="th-hint">· clic para filtrar</span></th>
+                  <th scope="col" class="num">Horas contratadas</th>
+                  <th scope="col" class="num">Atenciones directas</th>
+                  <th scope="col" class="num">Atenciones indirectas</th>
+                  <th scope="col" class="num">Total</th>
+                  <th scope="col" class="num" id="th-meta-inst">Meta</th>
+                  <th scope="col" class="num">% FOJA</th>
+                </tr>
+              </thead>
+              <tbody id="tb-institutos"></tbody>
+              <tfoot id="tf-institutos"></tfoot>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="t-grafico">
+          <h2 id="t-grafico">Evolución mensual</h2>
+          <p class="muted" id="grafico-nota">Muestra los 12 meses del año con los filtros de instituto, área y cargo.</p>
+          <div class="chart-box">
+            <canvas id="grafico-mensual" role="img" aria-label="Gráfico de barras agrupadas con las atenciones planificadas y la meta de gestión de cada mes. Los valores están en la tabla de datos que sigue."></canvas>
+          </div>
+          <p id="grafico-estado" class="empty-state" hidden></p>
+          <div id="grafico-tabla-wrap" class="visually-hidden">
+            <table class="data">
+              <caption>Datos del gráfico: atenciones planificadas y meta de gestión por mes</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Mes</th>
+                  <th scope="col" class="num">Atenciones planificadas</th>
+                  <th scope="col" class="num">Meta de gestión</th>
+                </tr>
+              </thead>
+              <tbody id="tb-grafico"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="t-alertas">
+          <h2 id="t-alertas">Alertas</h2>
+          <p class="muted">Meses donde lo ejecutado según SIC está bajo la meta de gestión.</p>
+          <div class="table-wrap">
+            <table class="data">
+              <caption class="visually-hidden">Alertas de desviación bajo meta</caption>
+              <thead>
+                <tr>
+                  <th scope="col">PersonaId</th>
+                  <th scope="col">Instituto</th>
+                  <th scope="col">Mes</th>
+                  <th scope="col" class="num">Meta</th>
+                  <th scope="col" class="num">Ejecutado SIC</th>
+                  <th scope="col" class="num">Desviación</th>
+                  <th scope="col" class="num">Cumplimiento</th>
+                  <th scope="col">Estado</th>
+                </tr>
+              </thead>
+              <tbody id="tb-alertas"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <!-- ============================================================ 2. PROFESIONALES -->
+      <section id="vista-profesionales" class="view" aria-labelledby="t-profesionales" hidden>
+        <h1 id="t-profesionales" tabindex="-1">Profesionales</h1>
+          <section class="panel" aria-labelledby="t-lista-prof">
+            <h2 id="t-lista-prof">Buscar profesional</h2>
+            <div class="search-row">
+              <form id="form-buscar-prof" class="filters" role="search">
+                <div class="field">
+                  <label for="buscar-prof">Buscar por PersonaId</label>
+                  <input id="buscar-prof" name="buscar-prof" type="search" inputmode="numeric" autocomplete="off">
+                </div>
+              </form>
+              <p id="prof-conteo" class="muted" aria-live="polite"></p>
+            </div>
+            <ul id="lista-prof" class="chip-list" aria-label="Profesionales de esta página"></ul>
+            <div class="pager">
+              <button type="button" class="btn btn-secondary" id="prof-anterior">Anterior</button>
+              <p id="prof-pagina"></p>
+              <button type="button" class="btn btn-secondary" id="prof-siguiente">Siguiente</button>
+            </div>
+          </section>
+
+          <section class="panel" id="detalle-prof" aria-labelledby="t-detalle-prof">
+            <h2 id="t-detalle-prof" tabindex="-1">Detalle</h2>
+            <p id="detalle-vacio" class="muted">Elige un profesional del listado para ver su planificación.</p>
+            <div id="detalle-contenido" hidden>
+              <dl class="ficha" id="ficha-prof"></dl>
+              <div class="table-wrap">
+                <table class="data compact">
+                  <caption>Planificación mensual <span class="anio"></span></caption>
+                  <colgroup><col></colgroup>
+                  <colgroup span="5"></colgroup>
+                  <colgroup span="4"></colgroup>
+                  <colgroup><col></colgroup>
+                  <thead>
+                    <tr>
+                      <th scope="col" rowspan="2">Mes</th>
+                      <th scope="colgroup" colspan="5" class="group">Horas</th>
+                      <th scope="colgroup" colspan="4" class="group">Atenciones</th>
+                      <th scope="col" rowspan="2" class="num">% FOJA</th>
+                    </tr>
+                    <tr>
+                      <th scope="col" class="num">Contratadas</th>
+                      <th scope="col" class="num">Directas</th>
+                      <th scope="col" class="num">Indirectas</th>
+                      <th scope="col" class="num">NAS</th>
+                      <th scope="col" class="num">Ausencia</th>
+                      <th scope="col" class="num">Directas</th>
+                      <th scope="col" class="num">Indirectas</th>
+                      <th scope="col" class="num">Total</th>
+                      <th scope="col" class="num">Meta</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tb-detalle"></tbody>
+                  <tfoot id="tf-detalle"></tfoot>
+                </table>
+              </div>
+
+              <section class="subpanel" data-requiere="gestion" aria-labelledby="t-simular">
+                <h3 id="t-simular">Simular</h3>
+                <p class="muted" id="simular-ayuda">Calcula un mes con valores distintos sin guardar nada. Deja un campo vacío para conservar el valor vigente.</p>
+                <form id="form-simular" class="form-grid" aria-describedby="simular-ayuda">
+                  <div class="field">
+                    <label for="sim-mes">Mes</label>
+                    <select id="sim-mes" name="mes" required></select>
+                  </div>
+                  <div class="field">
+                    <label for="sim-instituto">Instituto</label>
+                    <select id="sim-instituto" name="instituto" required></select>
+                  </div>
+                  <div class="field">
+                    <label for="sim-meta">% meta</label>
+                    <input id="sim-meta" name="pctMeta" type="text" inputmode="decimal" autocomplete="off" aria-describedby="sim-meta-ayuda">
+                    <span class="field-hint" id="sim-meta-ayuda">De 1 a 100.</span>
+                  </div>
+                  <div class="field">
+                    <label for="sim-directo">% directo</label>
+                    <input id="sim-directo" name="pctDirecto" type="text" inputmode="decimal" autocomplete="off" aria-describedby="sim-directo-ayuda">
+                    <span class="field-hint" id="sim-directo-ayuda">De 0 a 100.</span>
+                  </div>
+                  <div class="field">
+                    <label for="sim-indirecto">% indirecto</label>
+                    <input id="sim-indirecto" name="pctIndirecto" type="text" inputmode="decimal" autocomplete="off" aria-describedby="sim-indirecto-ayuda">
+                    <span class="field-hint" id="sim-indirecto-ayuda">De 0 a 100.</span>
+                  </div>
+                  <div class="field">
+                    <label for="sim-minutos">Minutos por atención directa</label>
+                    <select id="sim-minutos" name="minutosDirecta">
+                      <option value="">Sin cambio</option>
+                      <option value="30">30</option>
+                      <option value="40">40</option>
+                      <option value="45">45</option>
+                      <option value="60">60</option>
+                    </select>
+                  </div>
+                  <div class="form-actions">
+                    <button type="submit" class="btn">Simular</button>
+                  </div>
+                </form>
+                <div id="sim-resultado" hidden>
+                  <div class="table-wrap">
+                    <table class="data">
+                      <caption id="sim-caption">Resultado de la simulación</caption>
+                      <thead>
+                        <tr>
+                          <th scope="col">Indicador</th>
+                          <th scope="col" class="num">Actual</th>
+                          <th scope="col" class="num">Simulado</th>
+                          <th scope="col" class="num">Diferencia</th>
+                        </tr>
+                      </thead>
+                      <tbody id="tb-simulacion"></tbody>
+                    </table>
+                  </div>
+                  <p class="note" id="sim-persistido"></p>
+                </div>
+              </section>
+            </div>
+          </section>
+      </section>
+
+      <!-- ============================================================ 3. PARÁMETROS -->
+      <section id="vista-parametros" class="view" aria-labelledby="t-parametros" hidden>
+        <div class="view-head">
+          <h1 id="t-parametros" tabindex="-1">Parámetros</h1>
+          <button type="button" class="btn" id="btn-recalcular" data-requiere="editar">Recalcular planificación</button>
+        </div>
+        <p class="note" data-sin-permiso="editar">Solo lectura: con tu rol puedes consultar los parámetros. Para editarlos usa el rol RRHH o DMN.</p>
+
+        <div class="tabs">
+          <div role="tablist" aria-label="Tipos de parámetro" id="tabs-parametros">
+            <button type="button" role="tab" id="tab-dist" aria-controls="panel-dist" aria-selected="true">Distribución por cargo y tramo</button>
+            <button type="button" role="tab" id="tab-meta" aria-controls="panel-meta" aria-selected="false" tabindex="-1">Meta de gestión</button>
+            <button type="button" role="tab" id="tab-generales" aria-controls="panel-generales" aria-selected="false" tabindex="-1">Jornada legal y generales</button>
+            <button type="button" role="tab" id="tab-calendario" aria-controls="panel-calendario" aria-selected="false" tabindex="-1">Calendario</button>
+            <button type="button" role="tab" id="tab-catalogo" aria-controls="panel-catalogo" aria-selected="false" tabindex="-1">Catálogo de asignaciones</button>
+          </div>
+
+          <div role="tabpanel" id="panel-dist" aria-labelledby="tab-dist" class="tabpanel">
+            <form id="form-buscar-cargo" class="filters" role="search">
+              <div class="field">
+                <label for="buscar-cargo">Buscar por cargo</label>
+                <input id="buscar-cargo" name="buscar-cargo" type="search" autocomplete="off">
+              </div>
+            </form>
+            <p id="dist-conteo" class="muted"></p>
+            <div class="table-wrap table-tall">
+              <table class="data">
+                <caption class="visually-hidden">Distribución de horas por cargo y tramo</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Cargo</th>
+                    <th scope="col">Tramo</th>
+                    <th scope="col" class="num">% directo</th>
+                    <th scope="col" class="num">% indirecto</th>
+                    <th scope="col" class="num">% NAS</th>
+                    <th scope="col" class="num">Min. directa</th>
+                    <th scope="col" class="num">Min. indirecta</th>
+                    <th scope="col">Vigente desde</th>
+                    <th scope="col">Vigente hasta</th>
+                  </tr>
+                </thead>
+                <tbody id="tb-distribuciones"></tbody>
+              </table>
+            </div>
+
+            <section class="subpanel" data-requiere="editar" aria-labelledby="t-nueva-dist">
+              <h2 id="t-nueva-dist">Agregar vigencia nueva</h2>
+              <p class="muted" id="nueva-dist-ayuda">Los porcentajes se ingresan de 0 a 100. Directo + indirecto + NAS no puede superar 100 %.</p>
+              <form id="form-distribucion" class="form-grid" aria-describedby="nueva-dist-ayuda">
+                <div class="field field-wide">
+                  <label for="d-cargo">Cargo</label>
+                  <input id="d-cargo" name="cargo" type="text" list="lista-cargos" required autocomplete="off">
+                  <datalist id="lista-cargos"></datalist>
+                </div>
+                <div class="field">
+                  <label for="d-tramo">Tramo</label>
+                  <select id="d-tramo" name="tramo" required>
+                    <option value="T1_>=40">T1 (40 h o más)</option>
+                    <option value="T2_22-39">T2 (22 a 39 h)</option>
+                    <option value="T3_<22">T3 (menos de 22 h)</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="d-directo">% directo</label>
+                  <input id="d-directo" name="pctDirecto" type="text" inputmode="decimal" required autocomplete="off" aria-describedby="d-directo-ayuda">
+                  <span class="field-hint" id="d-directo-ayuda">De 0 a 100.</span>
+                </div>
+                <div class="field">
+                  <label for="d-indirecto">% indirecto</label>
+                  <input id="d-indirecto" name="pctIndirecto" type="text" inputmode="decimal" required autocomplete="off" aria-describedby="d-indirecto-ayuda">
+                  <span class="field-hint" id="d-indirecto-ayuda">De 0 a 100.</span>
+                </div>
+                <div class="field">
+                  <label for="d-nas">% NAS</label>
+                  <input id="d-nas" name="pctNas" type="text" inputmode="decimal" required autocomplete="off" aria-describedby="d-nas-ayuda">
+                  <span class="field-hint" id="d-nas-ayuda">De 0 a 100.</span>
+                </div>
+                <div class="field">
+                  <label for="d-min-directa">Minutos atención directa</label>
+                  <select id="d-min-directa" name="minutosDirecta" required>
+                    <option value="30">30</option>
+                    <option value="40">40</option>
+                    <option value="45">45</option>
+                    <option value="60">60</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="d-min-indirecta">Minutos atención indirecta</label>
+                  <input id="d-min-indirecta" name="minutosIndirecta" type="number" min="1" max="240" step="1" value="30" required>
+                </div>
+                <div class="field">
+                  <label for="d-grupal">% atención grupal</label>
+                  <input id="d-grupal" name="pctGrupal" type="text" inputmode="decimal" value="0" required autocomplete="off" aria-describedby="d-grupal-ayuda">
+                  <span class="field-hint" id="d-grupal-ayuda">De 0 a 100.</span>
+                </div>
+                <div class="field">
+                  <label for="d-pacientes">Pacientes por grupo</label>
+                  <input id="d-pacientes" name="pacientesGrupo" type="number" min="1" max="100" step="any" value="1" required>
+                </div>
+                <div class="field">
+                  <label for="d-desde">Vigente desde</label>
+                  <input id="d-desde" name="vigenteDesde" type="date" required>
+                </div>
+                <div class="field">
+                  <label for="d-hasta">Vigente hasta (opcional)</label>
+                  <input id="d-hasta" name="vigenteHasta" type="date">
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="btn">Guardar vigencia</button>
+                </div>
+              </form>
+            </section>
+          </div>
+
+          <div role="tabpanel" id="panel-meta" aria-labelledby="tab-meta" class="tabpanel" tabindex="0" hidden>
+            <p class="big-value"><span class="muted">Meta vigente hoy:</span> <strong id="meta-actual">—</strong></p>
+            <p class="muted" id="meta-actual-detalle"></p>
+            <div class="table-wrap">
+              <table class="data">
+                <caption>Historial de la meta de gestión</caption>
+                <thead>
+                  <tr>
+                    <th scope="col" class="num">Valor</th>
+                    <th scope="col">Vigente desde</th>
+                  </tr>
+                </thead>
+                <tbody id="tb-meta"></tbody>
+              </table>
+            </div>
+            <section class="subpanel" data-requiere="editar" aria-labelledby="t-nueva-meta">
+              <h2 id="t-nueva-meta">Cambiar meta de gestión</h2>
+              <form id="form-meta" class="form-grid">
+                <div class="field">
+                  <label for="m-valor">Meta (%)</label>
+                  <input id="m-valor" name="valor" type="text" inputmode="decimal" required autocomplete="off" aria-describedby="m-valor-ayuda">
+                  <span class="field-hint" id="m-valor-ayuda">De 1 a 100.</span>
+                </div>
+                <div class="field">
+                  <label for="m-desde">Vigente desde</label>
+                  <input id="m-desde" name="vigenteDesde" type="date" required>
+                </div>
+                <div class="field">
+                  <label for="m-hasta">Vigente hasta (opcional)</label>
+                  <input id="m-hasta" name="vigenteHasta" type="date">
+                </div>
+                <div class="field field-full">
+                  <label for="m-justificacion">Justificación (obligatoria)</label>
+                  <textarea id="m-justificacion" name="justificacion" rows="3" required maxlength="160"></textarea>
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="btn">Guardar meta</button>
+                </div>
+              </form>
+            </section>
+          </div>
+
+          <div role="tabpanel" id="panel-generales" aria-labelledby="tab-generales" class="tabpanel" tabindex="0" hidden>
+            <h2>Jornada legal</h2>
+            <div class="table-wrap">
+              <table class="data">
+                <caption class="visually-hidden">Referencias de jornada legal</caption>
+                <thead>
+                  <tr>
+                    <th scope="col" class="num">Horas semanales</th>
+                    <th scope="col">Vigente desde</th>
+                    <th scope="col">Vigente hasta</th>
+                    <th scope="col">Descripción</th>
+                  </tr>
+                </thead>
+                <tbody id="tb-jornada"></tbody>
+              </table>
+            </div>
+            <h2>Parámetros generales</h2>
+            <div class="table-wrap">
+              <table class="data">
+                <caption class="visually-hidden">Parámetros generales</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Código</th>
+                    <th scope="col">Valor</th>
+                    <th scope="col">Vigente desde</th>
+                  </tr>
+                </thead>
+                <tbody id="tb-generales"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div role="tabpanel" id="panel-calendario" aria-labelledby="tab-calendario" class="tabpanel" hidden>
+            <form class="filters" id="form-cal">
+              <div class="field">
+                <label for="cal-instituto">Instituto</label>
+                <select id="cal-instituto" name="instituto"><option value="">Todos</option></select>
+              </div>
+            </form>
+            <div class="table-wrap">
+              <table class="data">
+                <caption class="visually-hidden">Calendario institucional</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Instituto</th>
+                    <th scope="col" class="num">Año</th>
+                    <th scope="col">Mes</th>
+                    <th scope="col" class="num">Días hábiles</th>
+                    <th scope="col">Zona</th>
+                  </tr>
+                </thead>
+                <tbody id="tb-calendario"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div role="tabpanel" id="panel-catalogo" aria-labelledby="tab-catalogo" class="tabpanel" tabindex="0" hidden>
+            <div class="table-wrap">
+              <table class="data">
+                <caption class="visually-hidden">Catálogo de asignaciones especiales</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Asignación</th>
+                    <th scope="col" class="num">Horas semanales</th>
+                    <th scope="col">Activa</th>
+                    <th scope="col">Requiere aprobación DMN</th>
+                  </tr>
+                </thead>
+                <tbody id="tb-catalogo"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================ 4. ASIGNACIONES -->
+      <section id="vista-asignaciones" class="view" aria-labelledby="t-asignaciones" hidden>
+        <h1 id="t-asignaciones" tabindex="-1">Asignaciones por aprobar</h1>
+        <p class="note" data-sin-permiso="aprobar">Solo el rol DMN puede aprobar o rechazar solicitudes.</p>
+
+        <section class="panel" aria-labelledby="t-solicitudes">
+          <h2 id="t-solicitudes" tabindex="-1">Solicitudes</h2>
+          <form class="filters" id="form-estado">
+            <div class="field">
+              <label for="s-estado">Estado</label>
+              <select id="s-estado" name="estado">
+                <option value="pending">Pendientes</option>
+                <option value="approved">Aprobadas</option>
+                <option value="rejected">Rechazadas</option>
+                <option value="">Todas</option>
+              </select>
+            </div>
+          </form>
+          <div class="table-wrap">
+            <table class="data">
+              <caption class="visually-hidden">Solicitudes de asignación especial</caption>
+              <thead>
+                <tr>
+                  <th scope="col">PersonaId</th>
+                  <th scope="col">Instituto</th>
+                  <th scope="col">Asignación</th>
+                  <th scope="col">Estado</th>
+                  <th scope="col">Vigente desde</th>
+                  <th scope="col">Vigente hasta</th>
+                  <th scope="col" data-requiere="aprobar">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="tb-solicitudes"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel" data-requiere="editar" aria-labelledby="t-nueva-sol">
+          <h2 id="t-nueva-sol">Nueva solicitud</h2>
+          <p class="muted" id="nueva-sol-ayuda">Las asignaciones que no requieren DMN quedan aprobadas al crearlas y recalculan la planificación.</p>
+          <form id="form-solicitud" class="form-grid" aria-describedby="nueva-sol-ayuda">
+            <div class="field">
+              <label for="n-persona">Profesional (PersonaId)</label>
+              <select id="n-persona" name="personaId" required></select>
+            </div>
+            <div class="field">
+              <label for="n-instituto">Instituto</label>
+              <select id="n-instituto" name="instituto" required></select>
+            </div>
+            <div class="field field-wide">
+              <label for="n-asignacion">Asignación</label>
+              <select id="n-asignacion" name="asignacionId" required></select>
+            </div>
+            <div class="field">
+              <label for="n-desde">Vigente desde</label>
+              <input id="n-desde" name="vigenteDesde" type="date" required>
+            </div>
+            <div class="field">
+              <label for="n-hasta">Vigente hasta (opcional)</label>
+              <input id="n-hasta" name="vigenteHasta" type="date">
+            </div>
+            <div class="field field-full">
+              <label for="n-justificacion">Justificación (obligatoria)</label>
+              <textarea id="n-justificacion" name="justificacion" rows="3" required maxlength="160"></textarea>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn">Crear solicitud</button>
+            </div>
+          </form>
+        </section>
+      </section>
+
+      <!-- ============================================================ 5. BITÁCORA -->
+      <section id="vista-bitacora" class="view" aria-labelledby="t-bitacora" hidden>
+        <div class="view-head">
+          <h1 id="t-bitacora" tabindex="-1">Bitácora</h1>
+          <button type="button" class="btn btn-secondary" id="btn-bitacora-actualizar">Actualizar</button>
+        </div>
+        <form class="filters" id="form-bitacora" role="search">
+          <div class="field field-wide">
+            <label for="b-texto">Buscar texto</label>
+            <input id="b-texto" name="texto" type="search" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="b-origen">Origen</label>
+            <select id="b-origen" name="origen">
+              <option value="">Todos</option>
+              <option value="blue_prism">Blue Prism (blue_prism)</option>
+              <option value="user">Usuario (user)</option>
+            </select>
+          </div>
+        </form>
+        <p id="bitacora-conteo" class="muted" aria-live="polite"></p>
+        <div class="table-wrap">
+          <table class="data audit">
+            <caption class="visually-hidden">Eventos de auditoría, del más reciente al más antiguo</caption>
+            <thead>
+              <tr>
+                <th scope="col">Fecha</th>
+                <th scope="col">Actor</th>
+                <th scope="col">Rol</th>
+                <th scope="col">Acción</th>
+                <th scope="col">Entidad</th>
+                <th scope="col">Valor anterior → valor nuevo</th>
+                <th scope="col">Justificación</th>
+                <th scope="col">Origen</th>
+              </tr>
+            </thead>
+            <tbody id="tb-bitacora"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Diálogos -->
+  <dialog id="dlg-recalcular" aria-labelledby="dlg-recalcular-t" aria-describedby="dlg-recalcular-d">
+    <form method="dialog">
+      <h2 id="dlg-recalcular-t">Recalcular planificación</h2>
+      <p id="dlg-recalcular-d">Se recalculará la planificación del año <span class="anio"></span> con los parámetros vigentes. Los valores calculados se reemplazan y la acción queda en la bitácora.</p>
+      <div class="field">
+        <label for="r-instituto">Instituto</label>
+        <select id="r-instituto" name="instituto"><option value="">Todos</option></select>
+      </div>
+      <div class="field">
+        <label for="r-mes">Desde el mes</label>
+        <select id="r-mes" name="mesDesde"></select>
+      </div>
+      <div class="dialog-actions">
+        <button type="submit" value="cancelar" class="btn btn-secondary" formnovalidate autofocus>Cancelar</button>
+        <button type="submit" value="confirmar" class="btn">Recalcular</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="dlg-decision" aria-labelledby="dlg-decision-t" aria-describedby="dlg-decision-d">
+    <form method="dialog">
+      <h2 id="dlg-decision-t">Resolver solicitud</h2>
+      <p id="dlg-decision-d"></p>
+      <div class="field">
+        <label for="dec-justificacion">Justificación (obligatoria)</label>
+        <textarea id="dec-justificacion" name="justificacion" rows="3" required maxlength="160"></textarea>
+      </div>
+      <div class="dialog-actions">
+        <button type="submit" value="cancelar" class="btn btn-secondary" formnovalidate>Cancelar</button>
+        <button type="submit" value="confirmar" class="btn" id="dec-confirmar">Confirmar</button>
+      </div>
+    </form>
+  </dialog>
+</body>
+</html>
