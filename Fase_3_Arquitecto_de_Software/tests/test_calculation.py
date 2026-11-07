@@ -107,6 +107,11 @@ def test_attentions_always_round_down():
     result = calculate_month(base_input(working_days=Decimal("1")))
     assert isinstance(result.planned_direct, int)
 
+    # Excel reference: persona 137732, January (36 direct/week, 11 indirect/week, 4.2 weeks).
+    january = calculate_month(base_input(approved_assignment_hours=Decimal("2")))
+    assert january.planned_direct == 151
+    assert january.target_total == 177
+
 
 def test_group_factor_only_multiplies_group_portion():
     regular = calculate_month(base_input())
@@ -117,18 +122,34 @@ def test_group_factor_only_multiplies_group_portion():
                 indirect_pct=Decimal("0.15"),
                 nas_pct=Decimal("0.20"),
                 direct_minutes=40,
-                group_pct=Decimal("0.20"),
-                group_size=Decimal("4"),
+                group_pct=Decimal("0.10"),
+                group_size=Decimal("1.5"),
             )
         )
     )
     assert grouped.planned_direct > regular.planned_direct
     assert grouped.planned_direct < regular.planned_direct * 4
 
+    # Excel reference: persona 140763, educator, June (33 direct/week × 1.05 × 4.2 weeks).
+    educator = calculate_month(
+        base_input(
+            month=6,
+            distribution=Distribution(
+                direct_pct=Decimal("0.55"),
+                indirect_pct=Decimal("0.15"),
+                nas_pct=Decimal("0.30"),
+                direct_minutes=40,
+                group_pct=Decimal("0.10"),
+                group_size=Decimal("1.5"),
+            ),
+        )
+    )
+    assert educator.planned_direct == 145
+
 
 def test_target_is_configurable_90_percent():
     result = calculate_month(base_input())
-    assert result.target_total == int(Decimal(result.planned_total) * Decimal("0.90") + Decimal("0.5"))
+    assert result.target_total == 192
 
 
 def test_foja_is_none_with_zero_contracted_hours():

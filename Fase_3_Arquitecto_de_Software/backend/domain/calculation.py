@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import calendar
 import datetime as dt
+import math
 from dataclasses import dataclass, replace
-from decimal import Decimal, ROUND_FLOOR, ROUND_HALF_UP
+from decimal import Decimal
 
 
 ZERO = Decimal("0")
@@ -119,7 +120,7 @@ def month_active_fraction(segment: ContractSegment, year: int, month: int) -> De
 
 
 def floor_attentions(hours: Decimal, minutes: int) -> int:
-    return int((hours * Decimal("60") / D(minutes)).to_integral_value(rounding=ROUND_FLOOR))
+    return math.floor(hours * Decimal("60") / D(minutes))
 
 
 def calculate_month(data: MonthCalculationInput) -> MonthCalculationResult:
@@ -132,6 +133,7 @@ def calculate_month(data: MonthCalculationInput) -> MonthCalculationResult:
     active_days = max(ZERO, data.working_days * data.active_fraction)
     absence_days = min(max(ZERO, data.absence_days), active_days)
     available_days = active_days - absence_days
+    net_working_weeks = available_days / FIVE
     contracted_hours = data.weekly_hours * active_days / FIVE
     absence_hours = data.weekly_hours * absence_days / FIVE
 
@@ -145,17 +147,22 @@ def calculate_month(data: MonthCalculationInput) -> MonthCalculationResult:
     else:
         direct_weekly = indirect_weekly = ZERO
 
-    direct_hours = direct_weekly * available_days / FIVE
-    indirect_hours = indirect_weekly * available_days / FIVE
+    direct_hours = direct_weekly * net_working_weeks
+    indirect_hours = indirect_weekly * net_working_weeks
     nas_hours = max(ZERO, contracted_hours - absence_hours - direct_hours - indirect_hours)
 
-    individual_hours = direct_hours * (Decimal("1") - data.distribution.group_pct)
-    group_hours = direct_hours * data.distribution.group_pct
-    planned_direct = floor_attentions(individual_hours, data.distribution.direct_minutes)
-    planned_direct += floor_attentions(group_hours, data.distribution.direct_minutes) * int(data.distribution.group_size)
-    planned_indirect = floor_attentions(indirect_hours, data.distribution.indirect_minutes)
-    planned_total = planned_direct + planned_indirect
-    target_total = int((D(planned_total) * data.target_pct).to_integral_value(rounding=ROUND_HALF_UP))
+    direct_weekly_attentions = floor_attentions(direct_weekly, data.distribution.direct_minutes)
+    indirect_weekly_attentions = floor_attentions(indirect_weekly, data.distribution.indirect_minutes)
+    group_factor = (
+        Decimal("1")
+        - data.distribution.group_pct
+        + data.distribution.group_pct * data.distribution.group_size
+    )
+    grouped_direct_weekly = D(direct_weekly_attentions) * group_factor
+    planned_direct = math.floor(grouped_direct_weekly * net_working_weeks)
+    planned_indirect = math.floor(D(indirect_weekly_attentions) * net_working_weeks)
+    planned_total = math.floor((grouped_direct_weekly + D(indirect_weekly_attentions)) * net_working_weeks)
+    target_total = math.floor(D(planned_total) * data.target_pct)
     foja = direct_hours / contracted_hours if contracted_hours else None
 
     return MonthCalculationResult(
